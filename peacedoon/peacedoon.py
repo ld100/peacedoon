@@ -4,6 +4,7 @@
 import os
 import boto3
 import settings
+import feeds
 
 default_region = 'eu-west-1'
 default_url = 'https://polly.eu-west-1.amazonaws.com'
@@ -28,8 +29,14 @@ def speak(polly, text, format='mp3', voice='Brian'):
     soundfile.write(soundBytes)
     soundfile.close()
     # os.system('afplay /tmp/sound.mp3')  # Works only on Mac OS, sorry
-    os.remove(FILE_PATH)
+    # os.remove(FILE_PATH)
 
 
 polly = connect()
-speak(polly, "Hello world, I'm Polly. Or Brian. Or anyone you want, really.", voice='Karl')
+# speak(polly, "Hello world, I'm Polly. Or Brian. Or anyone you want, really.", voice='Matthew')
+URL = "http://feeds.feedburner.com/PythonInsider"
+feed = feeds.Feed(URL)
+feed.parse()
+# content = feed.items[-1].title + "\n" + feed.items[-1].description_text
+content = feed.items[-1].title
+speak(polly, content, voice='Matthew')
