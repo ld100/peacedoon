@@ -12,7 +12,9 @@ import settings
 import feeds
 
 
-class AudioText:
+class AudioArticle:
+    """Representation of an auio article: both text and audio-files"""
+
     def __init__(self, text=None, title=None, voice='Matthew', language='english'):
         # AWS max length
         self.MAX_LENGTH = 1500
@@ -69,11 +71,13 @@ class AudioText:
 
 
     def _build_ssml_sentence(self, sentence):
+        """Wrap sentence in SSML-compatible markup"""
         s = PySSML()
         s.sentence(sentence)
         return s.ssml(True)
 
     def _build_ssml_title(self, title):
+        """Wrap article title in SSML-compatible markup with pause at the end"""
         s = PySSML()
         s.paragraph(title)
         s.pause('500ms')
@@ -102,17 +106,21 @@ class AudioText:
                 self.chunks.append(sentence)
 
     def _finish_chunks(self):
+        """"Amazon SSML requires whole text to be wrapped in root <speak> element"""
         for index, item in enumerate(self.chunks):
             chunk = "<speak>%s</speak>" % item
             self.chunks[index] = chunk
 
     def generate_hash(self):
+        """Generate MD5 hash, used for directory naming"""
         m = hashlib.md5()
         m.update(self.text.encode('utf-8'))
         return m.hexdigest()
 
 
 class AudioRenderer:
+    """Representation of single audio chunk rendered via Amazon Polly"""
+
     def __init__(self, text, filename, fmt='mp3', voice='Brian'):
         self.default_region = 'eu-west-1'
         self.default_url = 'https://polly.eu-west-1.amazonaws.com'
@@ -133,8 +141,8 @@ class AudioRenderer:
         )
 
         soundfile = open(self.file_path, 'wb')
-        soundBytes = resp['AudioStream'].read()
-        soundfile.write(soundBytes)
+        sound_bytes = resp['AudioStream'].read()
+        soundfile.write(sound_bytes)
         soundfile.close()
 
     def clean_up(self):
@@ -156,7 +164,7 @@ def build():
     feed = feeds.Feed(url)
     feed.parse()
 
-    txt = AudioText(text=feed.items[-1].description.text, title=feed.items[-1].title)
+    txt = AudioArticle(text=feed.items[-1].description.text, title=feed.items[-1].title)
     print(txt.generate_hash())
     print(txt.chunks)
     txt.render()
