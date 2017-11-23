@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import zlib
 
 import boto3
 import nltk
@@ -77,6 +78,11 @@ class AudioText:
             else:
                 self.chunks.append(sentence)
 
+    def generate_hash(self):
+        b = bytearray()
+        b.extend(map(ord, self.text))
+        return hex(zlib.crc32(b) & 0xffffffff)
+
 
 class AudioRenderer:
     def __init__(self, text, filename, fmt='mp3', voice='Brian'):
@@ -118,11 +124,11 @@ class AudioRenderer:
 #     url = "https://feeds.feedburner.com/CoinDesk"
 #     feed = feeds.Feed(url)
 #     feed.parse()
-#     content = feed.items[-1].title + ".\n" + feed.items[-1].description.text
+#     content = feed.items[-1].title + ". \n" + feed.items[-1].description.text
 #     # content = feed.items[-1].title
 #     txt = AudioText(content)
+#     print(txt.generate_hash())
 #     print(txt.chunks)
 #     txt.render()
-#
 #
 # build()
