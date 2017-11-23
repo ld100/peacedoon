@@ -13,21 +13,26 @@ import feeds
 
 
 class AudioText:
-    def __init__(self, text=None, voice='Matthew', language='english'):
+    def __init__(self, text=None, title=None, voice='Matthew', language='english'):
         # AWS max length
         self.MAX_LENGTH = 1500
 
         self.text = text
+        self.title = self._build_ssml_title(title)
         self.language = language
         self.voice = voice
 
         self.sentences = []
         self._build_sentences()
 
+        # Build title
+        self.sentences = [self.title] + self.sentences
+
         # We render chunks of text, which are under 1500 chars
         # Due to AWS Polly limitation
         self.chunks = []
         self._build_chunks()
+        self._finish_chunks()
 
     # TODO: Glue chunks
     # TODO: Add background noise and music
@@ -57,6 +62,23 @@ class AudioText:
             nltk.download('punkt')
             self.sentences = nltk.sent_tokenize(self.text)
 
+        # Apply SSML to each sentence
+        for index, item in enumerate(self.sentences):
+            sentence = self._build_ssml_sentence(item)
+            self.sentences[index] = sentence
+
+
+    def _build_ssml_sentence(self, sentence):
+        s = PySSML()
+        s.sentence(sentence)
+        return s.ssml(True)
+
+    def _build_ssml_title(self, title):
+        s = PySSML()
+        s.paragraph(title)
+        s.pause('500ms')
+        return s.ssml(True)
+
     def _build_chunks(self):
         """Split sentences into AWS Polly synthesizeable chunks"""
         length = len(self.sentences)
@@ -78,6 +100,11 @@ class AudioText:
                 self.chunks[-1] = composite
             else:
                 self.chunks.append(sentence)
+
+    def _finish_chunks(self):
+        for index, item in enumerate(self.chunks):
+            chunk = "<speak>%s</speak>" % item
+            self.chunks[index] = chunk
 
     def generate_hash(self):
         m = hashlib.md5()
@@ -124,16 +151,12 @@ class AudioRenderer:
 
 
 def build():
-    s = PySSML()
-    url = "https://feeds.feedburner.com/CoinDesk"
+    # url = "https://feeds.feedburner.com/CoinDesk"
+    url = "https://themerkle.com/feed/"
     feed = feeds.Feed(url)
     feed.parse()
-    s.say(feed.items[-1].title)
-    s.pause('500ms')
-    s.say(feed.items[-1].description.text)
-    content = s.ssml()
 
-    txt = AudioText(content)
+    txt = AudioText(text=feed.items[-1].description.text, title=feed.items[-1].title)
     print(txt.generate_hash())
     print(txt.chunks)
     txt.render()
