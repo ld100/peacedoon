@@ -6,6 +6,7 @@ import hashlib
 
 import boto3
 import nltk
+from pyssml.PySSML import PySSML
 
 import settings
 import feeds
@@ -99,7 +100,9 @@ class AudioRenderer:
         resp = self.client.synthesize_speech(
             OutputFormat=self.format,
             Text=self.text,
-            VoiceId=self.voice
+            VoiceId=self.voice,
+            TextType='ssml',
+            # SpeechMarkTypes=['sentence', 'ssml']
         )
 
         soundfile = open(self.file_path, 'wb')
@@ -120,15 +123,19 @@ class AudioRenderer:
         )
 
 
-# def build():
-#     url = "https://feeds.feedburner.com/CoinDesk"
-#     feed = feeds.Feed(url)
-#     feed.parse()
-#     content = feed.items[-1].title + ". \n" + feed.items[-1].description.text
-#     # content = feed.items[-1].title
-#     txt = AudioText(content)
-#     print(txt.generate_hash())
-#     print(txt.chunks)
-#     txt.render()
-#
-# build()
+def build():
+    s = PySSML()
+    url = "https://feeds.feedburner.com/CoinDesk"
+    feed = feeds.Feed(url)
+    feed.parse()
+    s.say(feed.items[-1].title)
+    s.pause('500ms')
+    s.say(feed.items[-1].description.text)
+    content = s.ssml()
+
+    txt = AudioText(content)
+    print(txt.generate_hash())
+    print(txt.chunks)
+    txt.render()
+
+build()
