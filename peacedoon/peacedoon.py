@@ -8,6 +8,7 @@ import boto3
 import nltk
 from pyssml.PySSML import PySSML
 from pydub import AudioSegment
+from feedgen.feed import FeedGenerator
 
 import settings
 import feeds
@@ -98,7 +99,6 @@ class AudioArticle:
             sentence = self._build_ssml_sentence(item)
             self.sentences[index] = sentence
 
-
     def _build_ssml_sentence(self, sentence):
         """Wrap sentence in SSML-compatible markup"""
         s = PySSML()
@@ -187,6 +187,54 @@ class AudioRenderer:
         )
 
 
+class Podcast(object):
+    # Podcast attributes
+    id = None
+    title = None
+    author = None
+    link = None
+    logo = None
+    subtitle = '-'
+    language = 'en'
+
+    def __init__(self, slug, items=[]):
+        self.slug = slug
+        self.items = items
+
+    def build(self):
+        fg = FeedGenerator()
+
+        fg.id(self.id)
+        fg.title(self.title)
+        fg.author({'name':self.author, 'email':'john@example.com'})
+        fg.link(href=self.link, rel='alternate')
+        fg.logo(self.logo)
+        fg.subtitle(self.subtitle)
+        fg.language(self.language)
+
+        fg.load_extension('podcast', rss=True)
+        fg.podcast.itunes_category('Technology', 'Podcasting')
+
+        for item in self.items:
+            fe = fg.add_entry()
+            fe.id(item['id'])
+            fe.title(item['title'])
+            # fe.description(item['description'])
+            fe.description('Enjoy our first episode.')
+            fe.enclosure(item['file'], 0, 'audio/mpeg')
+
+        self.body = fg.rss_str(pretty=True).decode("utf-8")
+
+    def __save_path(self):
+        filename = "%s.xml" % self.slug
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'tmp', filename))
+
+    def write(self):
+        text_file = open(self.__save_path(), "w")
+        text_file.write(self.body)
+        text_file.close()
+
+
 def build():
     # url = "https://feeds.feedburner.com/CoinDesk"
     url = "https://themerkle.com/feed/"
@@ -198,5 +246,21 @@ def build():
     # print(txt.chunks)
     txt.render()
     print(txt.audiofile)
+
+    slug = 'themerkle'
+    items = [{
+        'id': 'this-is-id-125',
+        'title': feed.items[-1].title,
+        'description': feed.items[-1].description.text,
+        'file': txt.audiofile,
+    }]
+    podcast = Podcast(slug, items)
+    podcast.title = feed.title
+    podcast.link = url
+    podcast.author = 'John Doe'
+
+    podcast.build()
+    podcast.write()
+
 
 build()
