@@ -40,7 +40,6 @@ class AudioArticle:
         # Path for article audiofile
         self.audiofile = None
 
-    # TODO: Add background noise and music
     # TODO: Create unique filenames for chunks
     def render(self):
         renderers = []
