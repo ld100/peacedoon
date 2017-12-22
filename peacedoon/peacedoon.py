@@ -40,10 +40,13 @@ class AudioArticle:
     # TODO: Add background noise and music
     # TODO: Create unique filenames for chunks
     def render(self):
+        renderers = []
         for i, e in zip(range(len(self.chunks)), self.chunks):
             filename = "%i.mp3" % i
             chunk = self._render_chunk(e, filename)
+            renderers.append(chunk)
             # chunk.clean_up()
+        # Glue chunks
 
     def _render_chunk(self, chunk, filename):
         renderer = AudioRenderer(
