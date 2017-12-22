@@ -40,7 +40,6 @@ class AudioArticle:
         # Path for article audiofile
         self.audiofile = None
 
-    # TODO: Glue chunks
     # TODO: Add background noise and music
     # TODO: Create unique filenames for chunks
     def render(self):
@@ -62,6 +61,12 @@ class AudioArticle:
 
         podcast_filename = "%s.mp3" % self.generate_hash()
         podcast_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'tmp', podcast_filename))
+
+        music_filename = 'looperman-l-2099293-0117520-dylanjake-the-weeknd-type-pad.mp3'
+        music_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', music_filename))
+        music_stream = AudioSegment.from_mp3(music_path)
+        MUSIC_VOLUME = -7
+        podcast_stream = podcast_stream.overlay(music_stream + MUSIC_VOLUME, loop=True)
 
         podcast_stream.export(podcast_path, format="mp3")
 
