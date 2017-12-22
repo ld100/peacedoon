@@ -7,6 +7,7 @@ import hashlib
 import boto3
 import nltk
 from pyssml.PySSML import PySSML
+from pydub import AudioSegment
 
 import settings
 import feeds
@@ -36,6 +37,9 @@ class AudioArticle:
         self._build_chunks()
         self._finish_chunks()
 
+        # Path for article audiofile
+        self.audiofile = None
+
     # TODO: Glue chunks
     # TODO: Add background noise and music
     # TODO: Create unique filenames for chunks
@@ -46,7 +50,25 @@ class AudioArticle:
             chunk = self._render_chunk(e, filename)
             renderers.append(chunk)
             # chunk.clean_up()
+
         # Glue chunks
+        podcast_stream = None
+        for renderer in renderers:
+            audio_stream = AudioSegment.from_mp3(renderer.file_path)
+            if podcast_stream is None:
+                podcast_stream = audio_stream
+            else:
+                podcast_stream += audio_stream
+
+        podcast_filename = "%s.mp3" % self.generate_hash()
+        podcast_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'tmp', podcast_filename))
+
+        podcast_stream.export(podcast_path, format="mp3")
+
+        # Clean up the shit
+        [x.clean_up() for x in renderers]
+
+        self.audiofile = podcast_path
 
     def _render_chunk(self, chunk, filename):
         renderer = AudioRenderer(
@@ -168,8 +190,9 @@ def build():
     feed.parse()
 
     txt = AudioArticle(text=feed.items[-1].description.text, title=feed.items[-1].title)
-    print(txt.generate_hash())
-    print(txt.chunks)
+    # print(txt.generate_hash())
+    # print(txt.chunks)
     txt.render()
+    print(txt.audiofile)
 
 build()

@@ -20,10 +20,16 @@ class Feed:
 
         for entry in feed.entries:
             # article_published_at = entry.published  # Unicode string
+            description = entry.description
+            if "content" in entry and len(entry["content"]) > 0:
+                description = entry.content[0]["value"]
+                # import json
+                # print(json.dumps(description, sort_keys=True, indent=4))
+
             item = FeedItem(
                 entry.title,
                 entry.link,
-                entry.description,
+                description,
                 entry.author,
                 entry.published_parsed  # Time object
             )
