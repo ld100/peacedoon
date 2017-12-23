@@ -221,7 +221,11 @@ class Podcast(object):
             fe.title(item['title'])
             # fe.description(item['description'])
             fe.description('Enjoy our first episode.')
-            fe.enclosure(item['file'], 0, 'audio/mpeg')
+            fe.enclosure(
+                os.path.basename(item['file']),
+                str(os.path.getsize(item['file'])).encode("utf-8").decode("utf-8"),
+                'audio/mpeg',
+            )
 
         self.body = fg.rss_str(pretty=True).decode("utf-8")
 
@@ -252,7 +256,7 @@ def build():
         'id': feed.items[-1].id,
         'title': feed.items[-1].title,
         'description': feed.items[-1].description.text,
-        'file': os.path.basename(txt.audiofile),
+        'file': txt.audiofile,
     }]
     podcast = Podcast(slug, items)
     podcast.title = feed.title
