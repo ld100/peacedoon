@@ -252,7 +252,7 @@ def build():
         'id': feed.items[-1].id,
         'title': feed.items[-1].title,
         'description': feed.items[-1].description.text,
-        'file': txt.audiofile,
+        'file': os.path.basename(txt.audiofile),
     }]
     podcast = Podcast(slug, items)
     podcast.title = feed.title
