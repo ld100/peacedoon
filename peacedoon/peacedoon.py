@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os
 import hashlib
+import os
 
 import boto3
 import nltk
-from pyssml.PySSML import PySSML
-from pydub import AudioSegment
 from feedgen.feed import FeedGenerator
+from pydub import AudioSegment
+from pyssml.PySSML import PySSML
 
-import settings
 import feeds
+import settings
 
 
 class AudioArticle:
@@ -206,7 +206,7 @@ class Podcast(object):
 
         fg.id(self.id)
         fg.title(self.title)
-        fg.author({'name':self.author, 'email':'john@example.com'})
+        fg.author({'name': self.author, 'email': 'john@example.com'})
         fg.link(href=self.link, rel='alternate')
         fg.logo(self.logo)
         fg.subtitle(self.subtitle)
@@ -242,21 +242,21 @@ def build():
     feed.parse()
 
     txt = AudioArticle(text=feed.items[-1].description.text, title=feed.items[-1].title)
-    # print(txt.generate_hash())
-    # print(txt.chunks)
     txt.render()
     print(txt.audiofile)
 
     slug = 'themerkle'
+
+    # TODO: Implement podcast item class
     items = [{
-        'id': 'this-is-id-125',
+        'id': feed.items[-1].id,
         'title': feed.items[-1].title,
         'description': feed.items[-1].description.text,
         'file': txt.audiofile,
     }]
     podcast = Podcast(slug, items)
     podcast.title = feed.title
-    podcast.link = url
+    podcast.link = feed.link
     podcast.author = 'John Doe'
 
     podcast.build()

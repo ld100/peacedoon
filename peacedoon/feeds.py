@@ -1,5 +1,4 @@
 import feedparser
-import nltk
 from bs4 import BeautifulSoup
 
 
@@ -9,14 +8,27 @@ class Feed:
     def __init__(self, url=None, language='english'):
         self.items = []
         self.title = None
+        self.description = None
         self.url = url
+        self.link = url
         self.language = language
+        self.image = None
+        self.author = None
 
     def parse(self):
         feed = feedparser.parse(self.url)
         self.title = feed['feed']['title']
         if 'language' in feed:
             self.language = feed['language']
+
+        if 'image' in feed:
+            self.image = feed['image']['href']
+
+        if 'description' in feed:
+            self.description = feed['description']
+
+        if 'author_detail' in feed:
+            self.author = feed['author_detail']
 
         for entry in feed.entries:
             # article_published_at = entry.published  # Unicode string
@@ -27,6 +39,7 @@ class Feed:
                 # print(json.dumps(description, sort_keys=True, indent=4))
 
             item = FeedItem(
+                entry.id,
                 entry.title,
                 entry.link,
                 description,
@@ -39,7 +52,8 @@ class Feed:
 class FeedItem:
     """Object representation of RSS/ATOM feed item"""
 
-    def __init__(self, title, link, description, author, published_at):
+    def __init__(self, id, title, link, description, author, published_at):
+        self.id = id
         self.title = title
         self.link = link
         self.description = ItemDescription(description)
