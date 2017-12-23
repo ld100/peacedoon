@@ -12,6 +12,7 @@ from pyssml.PySSML import PySSML
 
 import feeds
 import settings
+import uploader
 
 
 class AudioArticle:
@@ -238,6 +239,17 @@ class Podcast(object):
         text_file.write(self.body)
         text_file.close()
 
+    def upload(self):
+        xml_uploader = uploader.Uploader(self.__save_path(), s3_filepath=self.slug)
+        xml_url = xml_uploader.upload()
+
+        # Uploading each MP3 file
+        for item in self.items:
+            mp3_uploader = uploader.Uploader(item['file'], s3_filepath=self.slug)
+            mp3_url = mp3_uploader.upload()
+
+        return xml_url
+
 
 def build():
     # url = "https://feeds.feedburner.com/CoinDesk"
@@ -247,7 +259,7 @@ def build():
 
     txt = AudioArticle(text=feed.items[-1].description.text, title=feed.items[-1].title)
     txt.render()
-    print(txt.audiofile)
+    # print(txt.audiofile)
 
     slug = 'themerkle'
 
@@ -265,6 +277,8 @@ def build():
 
     podcast.build()
     podcast.write()
+    location = podcast.upload()
+    print(location)
 
 
 build()
