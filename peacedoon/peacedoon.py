@@ -4,11 +4,12 @@
 import hashlib
 import os
 from datetime import datetime
-from dateutil import tz
+from datetime import timezone
 from time import mktime
 
 import boto3
 import nltk
+from dateutil import tz
 from feedgen.feed import FeedGenerator
 from pydub import AudioSegment
 from pyssml.PySSML import PySSML
@@ -198,6 +199,7 @@ class Podcast(object):
     author = None
     link = None
     logo = None
+    body = None
     subtitle = '-'
     language = 'en'
 
@@ -210,6 +212,7 @@ class Podcast(object):
 
         fg.id(self.id)
         fg.title(self.title)
+        # TODO: Get actual author, categories, etc details from the feed
         fg.author({'name': self.author, 'email': 'john@example.com'})
         fg.link(href=self.link, rel='alternate')
         fg.logo(self.logo)
@@ -222,18 +225,18 @@ class Podcast(object):
 
         for item in self.items:
             fe = fg.add_entry()
-            fe.id(item['id'])
-            fe.title(item['title'])
-            # fe.description(item['description'])
+            fe.id(item.id)
+            fe.title(item.title)
+            # fe.description(item.description)
             fe.description('Enjoy our first episode.')
-            if 'published_at' in item:
-                published_dt = datetime.fromtimestamp(mktime(item['published_at']))
-                to_zone = tz.gettz('UTC')
-                fe.pubdate(published_dt.astimezone(to_zone))
+            # published_dt = datetime.fromtimestamp(mktime(item.published_at))
+            # to_zone = tz.gettz('UTC')
+            # fe.pubdate(published_dt.astimezone(to_zone))
+            fe.pubdate(item.published_at)
 
-            file_name = os.path.basename(item['file'])
+            file_name = os.path.basename(item.file)
             file_location = "%s/%s/%s" % (settings.S3_HTTP_PREFIX, self.slug, file_name)
-            file_size = str(os.path.getsize(item['file'])).encode("utf-8").decode("utf-8")
+            file_size = str(os.path.getsize(item.file)).encode("utf-8").decode("utf-8")
             fe.enclosure(file_location, file_size, 'audio/mpeg')
 
         self.body = fg.rss_str(pretty=True).decode("utf-8")
@@ -253,42 +256,84 @@ class Podcast(object):
 
         # Uploading each MP3 file
         for item in self.items:
-            mp3_uploader = uploader.Uploader(item['file'], s3_filepath=self.slug)
+            mp3_uploader = uploader.Uploader(item.file, s3_filepath=self.slug)
             mp3_url = mp3_uploader.upload()
 
         return xml_url
 
 
-def build():
-    # url = "https://feeds.feedburner.com/CoinDesk"
-    url = "https://themerkle.com/feed/"
-    feed = feeds.Feed(url)
-    feed.parse()
+class Article(object):
+    """Article class stores both parsed RSS feed and appropriate audio article"""
 
-    txt = AudioArticle(text=feed.items[-1].description.text, title=feed.items[-1].title)
-    txt.render()
-    # print(txt.audiofile)
+    def __init__(self, feed_item, audio_article):
+        self.feed_item = feed_item
+        self.audio_article = audio_article
 
-    slug = 'themerkle'
+        self.__assign_attributes()
 
-    # TODO: Implement podcast item class
-    items = [{
-        'id': feed.items[-1].id,
-        'title': feed.items[-1].title,
-        'description': feed.items[-1].description.text,
-        'file': txt.audiofile,
-        'published_at': feed.items[-1].published_at,
-    }]
-    podcast = Podcast(slug, items)
-    podcast.title = feed.title
-    podcast.link = feed.link
-    podcast.id = feed.link
-    podcast.author = 'John Doe'
+    def __assign_attributes(self):
+        self.id = self.feed_item.id
+        self.title = self.feed_item.title
+        self.description = self.feed_item.description.text
+        self.file = self.audio_article.audiofile
 
-    podcast.build()
-    podcast.write()
-    location = podcast.upload()
-    print(location)
+        self.published_at = datetime.now(timezone.utc)
+        if self.feed_item.published_at:
+            published_dt = datetime.fromtimestamp(mktime(self.feed_item.published_at))
+            to_zone = tz.gettz('UTC')
+            self.published_at = published_dt.astimezone(to_zone)
 
 
-build()
+class PodcastBuilder(object):
+    articles = []
+    location = None
+
+    def __init__(self, url, slug):
+        self.url = url
+        self.slug = slug
+
+    def build(self):
+        self.__parse_feed()
+        self.__render_articles()
+        self.__build_podcast()
+        self.__write_podcast()
+        self.location = self.__upload_podcast()
+
+        return self.location
+
+    def __parse_feed(self):
+        self.feed = feeds.Feed(self.url)
+        self.feed.parse()
+
+    def __render_articles(self):
+        for item in self.feed.items:
+            audio_article = AudioArticle(text=item.description.text, title=item.title)
+            audio_article.render()
+
+            article = Article(item, audio_article)
+            self.articles.append(article)
+
+    def __build_podcast(self):
+        self.podcast = Podcast(self.slug, self.articles)
+        self.podcast.title = self.feed.title
+        self.podcast.link = self.feed.link
+        self.podcast.id = self.feed.link
+        # TODO: Fetch author from the feed
+        self.podcast.author = 'John Doe'
+        self.podcast.title = self.feed.title
+        self.podcast.title = self.feed.title
+
+        return self.podcast.build()
+
+    def __write_podcast(self):
+        return self.podcast.write()
+
+    def __upload_podcast(self):
+        return self.podcast.upload()
+
+
+url = "https://themerkle.com/feed/"
+slug = "themerkle"
+pb = PodcastBuilder(url, slug)
+location = pb.build()
+print(location)
