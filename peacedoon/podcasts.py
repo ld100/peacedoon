@@ -9,13 +9,12 @@ from time import mktime
 from dateutil import tz
 from feedgen.feed import FeedGenerator
 
+import articles
 import feeds
 import settings
 import uploader
-import articles
 
 
-# TODO: Clean up podcast files after the upload
 class Podcast(object):
     id = None
     title = None
@@ -64,7 +63,7 @@ class Podcast(object):
 
     def __save_path(self):
         filename = "%s.xml" % self.slug
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'tmp', filename))
+        return os.path.abspath(os.path.join(settings.TMP_DIR, filename))
 
     def write(self):
         text_file = open(self.__save_path(), "w")
@@ -81,6 +80,15 @@ class Podcast(object):
             mp3_url = mp3_uploader.upload()
 
         return xml_url
+
+    def clean_up(self):
+        """Clean up local MP3 and XML"""
+
+        # Clean up MP3 files
+        [x.audio_article.clean_up() for x in self.items]
+
+        # Clean up XML
+        os.remove(self.__save_path())
 
 
 class PodcastItem(object):
@@ -119,6 +127,7 @@ class PodcastBuilder(object):
         self.__build_podcast()
         self.__write_podcast()
         self.location = self.__upload_podcast()
+        self.__clean_up_podcast()
 
         return self.location
 
@@ -151,3 +160,6 @@ class PodcastBuilder(object):
 
     def __upload_podcast(self):
         return self.podcast.upload()
+
+    def __clean_up_podcast(self):
+        return self.podcast.clean_up()

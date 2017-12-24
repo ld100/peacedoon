@@ -14,3 +14,9 @@ AWS_BUCKET = os.environ.get('AWS_BUCKET')
 
 S3_FILEPATH = os.environ.get('S3_FILEPATH')
 S3_HTTP_PREFIX = os.environ.get('S3_HTTP_PREFIX')
+
+DATA_DIR = TMP_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data'))
+TMP_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'tmp'))
+
+BACKGROUND_MUSIC_FILE = 'looperman-l-2099293-0117520-dylanjake-the-weeknd-type-pad.mp3'
+MUSIC_VOLUME = -7

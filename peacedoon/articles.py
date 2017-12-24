@@ -11,9 +11,6 @@ from pyssml.PySSML import PySSML
 
 import settings
 
-BACKGROUND_MUSIC_FILE = 'looperman-l-2099293-0117520-dylanjake-the-weeknd-type-pad.mp3'
-MUSIC_VOLUME = -7
-
 
 class AudioArticle:
     """Representation of an audio article: both text and audio-files"""
@@ -42,7 +39,10 @@ class AudioArticle:
         # Path for article audiofile
         self.audiofile = None
 
-    # TODO: Create unique filenames for chunks
+    def clean_up(self):
+        os.remove(self.audiofile)
+
+    # TODO: Create unique filenames for chunks to prevent race conditions
     def render(self):
         renderers = []
         for i, e in zip(range(len(self.chunks)), self.chunks):
@@ -61,11 +61,11 @@ class AudioArticle:
                 podcast_stream += audio_stream
 
         podcast_filename = "%s.mp3" % self.generate_hash()
-        podcast_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'tmp', podcast_filename))
+        podcast_path = os.path.abspath(os.path.join(settings.TMP_DIR, podcast_filename))
 
-        music_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', BACKGROUND_MUSIC_FILE))
+        music_path = os.path.abspath(os.path.join(settings.DATA_DIR, settings.BACKGROUND_MUSIC_FILE))
         music_stream = AudioSegment.from_mp3(music_path)
-        podcast_stream = podcast_stream.overlay(music_stream + MUSIC_VOLUME, loop=True)
+        podcast_stream = podcast_stream.overlay(music_stream + settings.MUSIC_VOLUME, loop=True)
 
         podcast_stream.export(podcast_path, format="mp3")
 
@@ -150,12 +150,12 @@ class AudioRenderer:
     """Representation of single audio chunk rendered via Amazon Polly"""
 
     def __init__(self, text, filename, fmt='mp3', voice='Brian'):
-        self.default_region = 'eu-west-1'
-        self.default_url = 'https://polly.eu-west-1.amazonaws.com'
+        self.default_region = settings.AWS_DEFAULT_REGION
+        self.default_url = "https://polly.%s.amazonaws.com" % settings.AWS_DEFAULT_REGION
         self.text = text
         self.format = fmt
         self.voice = voice
-        self.file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'tmp', filename))
+        self.file_path = os.path.abspath(os.path.join(settings.TMP_DIR, filename))
 
         self.client = self._connect(self.default_region, self.default_url)
 
