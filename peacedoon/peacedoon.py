@@ -3,6 +3,9 @@
 
 import hashlib
 import os
+from datetime import datetime
+from dateutil import tz
+from time import mktime
 
 import boto3
 import nltk
@@ -215,6 +218,7 @@ class Podcast(object):
 
         fg.load_extension('podcast', rss=True)
         fg.podcast.itunes_category('Technology', 'Podcasting')
+        fg.podcast.itunes_summary(self.subtitle)
 
         for item in self.items:
             fe = fg.add_entry()
@@ -222,11 +226,15 @@ class Podcast(object):
             fe.title(item['title'])
             # fe.description(item['description'])
             fe.description('Enjoy our first episode.')
-            fe.enclosure(
-                os.path.basename(item['file']),
-                str(os.path.getsize(item['file'])).encode("utf-8").decode("utf-8"),
-                'audio/mpeg',
-            )
+            if 'published_at' in item:
+                published_dt = datetime.fromtimestamp(mktime(item['published_at']))
+                to_zone = tz.gettz('UTC')
+                fe.pubdate(published_dt.astimezone(to_zone))
+
+            file_name = os.path.basename(item['file'])
+            file_location = "%s/%s/%s" % (settings.S3_HTTP_PREFIX, self.slug, file_name)
+            file_size = str(os.path.getsize(item['file'])).encode("utf-8").decode("utf-8")
+            fe.enclosure(file_location, file_size, 'audio/mpeg')
 
         self.body = fg.rss_str(pretty=True).decode("utf-8")
 
@@ -269,10 +277,12 @@ def build():
         'title': feed.items[-1].title,
         'description': feed.items[-1].description.text,
         'file': txt.audiofile,
+        'published_at': feed.items[-1].published_at,
     }]
     podcast = Podcast(slug, items)
     podcast.title = feed.title
     podcast.link = feed.link
+    podcast.id = feed.link
     podcast.author = 'John Doe'
 
     podcast.build()
