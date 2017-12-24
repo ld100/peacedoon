@@ -18,9 +18,12 @@ import feeds
 import settings
 import uploader
 
+BACKGROUND_MUSIC_FILE = 'looperman-l-2099293-0117520-dylanjake-the-weeknd-type-pad.mp3'
+MUSIC_VOLUME = -7
+
 
 class AudioArticle:
-    """Representation of an auio article: both text and audio-files"""
+    """Representation of an audio article: both text and audio-files"""
 
     def __init__(self, text=None, title=None, voice='Matthew', language='english'):
         # AWS max length
@@ -67,10 +70,8 @@ class AudioArticle:
         podcast_filename = "%s.mp3" % self.generate_hash()
         podcast_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'tmp', podcast_filename))
 
-        music_filename = 'looperman-l-2099293-0117520-dylanjake-the-weeknd-type-pad.mp3'
-        music_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', music_filename))
+        music_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', BACKGROUND_MUSIC_FILE))
         music_stream = AudioSegment.from_mp3(music_path)
-        MUSIC_VOLUME = -7
         podcast_stream = podcast_stream.overlay(music_stream + MUSIC_VOLUME, loop=True)
 
         podcast_stream.export(podcast_path, format="mp3")
@@ -192,8 +193,8 @@ class AudioRenderer:
         )
 
 
+# TODO: Clean up podcast files after the upload
 class Podcast(object):
-    # Podcast attributes
     id = None
     title = None
     author = None
@@ -222,16 +223,14 @@ class Podcast(object):
         fg.load_extension('podcast', rss=True)
         fg.podcast.itunes_category('Technology', 'Podcasting')
         fg.podcast.itunes_summary(self.subtitle)
+        # TODO: Add podcast image covers, both standard RSS and Itune-compatible
 
         for item in self.items:
             fe = fg.add_entry()
             fe.id(item.id)
             fe.title(item.title)
-            # fe.description(item.description)
-            fe.description('Enjoy our first episode.')
-            # published_dt = datetime.fromtimestamp(mktime(item.published_at))
-            # to_zone = tz.gettz('UTC')
-            # fe.pubdate(published_dt.astimezone(to_zone))
+            fe.description(item.description)
+            # fe.description('Enjoy our first episode.')
             fe.pubdate(item.published_at)
 
             file_name = os.path.basename(item.file)
@@ -262,7 +261,7 @@ class Podcast(object):
         return xml_url
 
 
-class Article(object):
+class PodcastItem(object):
     """Article class stores both parsed RSS feed and appropriate audio article"""
 
     def __init__(self, feed_item, audio_article):
@@ -285,7 +284,7 @@ class Article(object):
 
 
 class PodcastBuilder(object):
-    articles = []
+    podcast_items = []
     location = None
 
     def __init__(self, url, slug):
@@ -310,11 +309,11 @@ class PodcastBuilder(object):
             audio_article = AudioArticle(text=item.description.text, title=item.title)
             audio_article.render()
 
-            article = Article(item, audio_article)
-            self.articles.append(article)
+            podcast_item = PodcastItem(item, audio_article)
+            self.podcast_items.append(podcast_item)
 
     def __build_podcast(self):
-        self.podcast = Podcast(self.slug, self.articles)
+        self.podcast = Podcast(self.slug, self.podcast_items)
         self.podcast.title = self.feed.title
         self.podcast.link = self.feed.link
         self.podcast.id = self.feed.link
