@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 class Feed:
     """Simple object representation of RSS/ATOM feed"""
 
-    def __init__(self, url=None, language='english'):
+    def __init__(self, url=None, language='en-US'):
         self.items = []
         self.title = None
         self.description = None

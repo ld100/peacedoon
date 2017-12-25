@@ -15,13 +15,16 @@ import settings
 class AudioArticle:
     """Representation of an audio article: both text and audio-files"""
 
-    def __init__(self, text=None, title=None, voice='Matthew', language='english'):
+    def __init__(self, text=None, title=None, voice='Matthew', language='en-US'):
         # AWS max length
         self.MAX_LENGTH = 1500
 
         self.text = text
         self.title = self._build_ssml_title(title)
         self.language = language
+        if voice == 'Matthew' and language == 'ru-RU':
+            voice = 'Tatyana'
+
         self.voice = voice
 
         self.sentences = []

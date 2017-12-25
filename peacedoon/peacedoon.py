@@ -10,9 +10,10 @@ class PodcastBuilder(object):
     podcast_items = []
     location = None
 
-    def __init__(self, url, slug):
+    def __init__(self, url, slug, language='en-US'):
         self.url = url
         self.slug = slug
+        self.language = language
 
     def build(self):
         self.__parse_feed()
@@ -30,7 +31,12 @@ class PodcastBuilder(object):
 
     def __render_articles(self):
         for item in self.feed.items:
-            audio_article = articles.AudioArticle(text=item.description.text, title=item.title)
+            audio_article = articles.AudioArticle(
+                text=item.description.text,
+                title=item.title,
+                language=self.language
+            )
+            # language = self.feed.language
             audio_article.render()
 
             podcast_item = podcasts.PodcastItem(item, audio_article)

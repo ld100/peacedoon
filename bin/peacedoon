@@ -24,10 +24,18 @@ parser.add_argument(
     help='Simple alphanumeric feed label/slug',
 )
 
+parser.add_argument(
+    '--language',
+    action='store',
+    default='en-US',
+    dest='language',
+    help='Language locale, e.g. en-US or ru-RU',
+)
+
 args = parser.parse_args()
 if args.feed_url is None or args.slug is None:
     print('Both feed url and slug are required')
 else:
-    pb = peacedoon.PodcastBuilder(args.feed_url, args.slug)
+    pb = peacedoon.PodcastBuilder(args.feed_url, args.slug, args.language)
     location = pb.build()
     print("Podcast is ready at %s" % location)
